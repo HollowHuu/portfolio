@@ -22,6 +22,17 @@ interface ProjectCardProps {
   icons: IconProps[];
 }
 
+interface IProject {
+  id: number;
+  name: string;
+  description: string;
+  imageUrl: string;
+  svgUrl: string;
+  url: string;
+  icons: IconProps[];
+  userId: number;
+}
+
 const Icon: Component<IconProps> = (props) => {
   return (
     <li class="relative mt-4 h-8 w-8">
@@ -67,7 +78,7 @@ export const ProjectCard: Component<ProjectCardProps> = (props) => {
       </p>
       <ul class="flex items-center justify-evenly gap-x-3" role="list">
         <For each={props.icons}>
-          {(icon) => <Icon name={icon.name} url={icon.url} />}
+          {(icon) => <Icon name={icon.name} url={icon.svgUrl} />}
         </For>
       </ul>
     </li>
@@ -75,20 +86,47 @@ export const ProjectCard: Component<ProjectCardProps> = (props) => {
 };
 
 export const Project: Component<ProjectProps> = (props) => {
-  // const [contactInfo] = createResource(props.userId, fetchContactDetails);
+  // Fetch projects from the backend
+  const [projects] = createResource(props.userId, fetchProjects);
 
-  // // TODO - Implement fetching from backend
-  // async function fetchContactDetails(id: number) {
+  // Function to fetch projects
+  async function fetchProjects(userId: number): Promise<IProject[]> {
+    const token = localStorage.getItem("token");
 
-  //     const contact: IContactDetails = {
-  //         Id: 2,
-  //         Email: "Test",
-  //         PhoneNumber: "212",
-  //         LinkedInUrl: ""
-  //     }
+    const response = await fetch(`http://localhost:5003/project`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-  //     return contact
-  // }
+    if (response.ok) {
+      const data = await response.json();
+      return data;
+    } else if (response.status === 404) {
+      // If no projects exist, return default values
+      return [
+        {
+          id: 1,
+          name: "My Portfolio",
+          description: "My portfolio website.",
+          imageUrl:
+            "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fkonachan.com%2Fimage%2F50d9f5adf2822f0feca92d3af176fa85%2FKonachan.com%2520-%2520109011%2520aqua_hair%2520chibi_miku%2520transparent%2520vector%2520vocaloid.png&f=1&nofb=1&ipt=0dac1a0a5031ddd380e035987212a4d27adc566fb01dfa50cdeadf4d9066f131&ipo=images",
+          svgUrl: "https://svgl.app/library/expressjs_dark.svg",
+          url: "",
+          icons: [
+            {
+              name: "Tailwind CSS",
+              url: "https://svgl.app/library/tailwindcss.svg",
+            },
+          ],
+          userId: userId,
+        },
+      ];
+    } else {
+      throw new Error("Failed to fetch projects");
+    }
+  }
 
   return (
     <div class="pt-8 sm:pt-16">
@@ -99,24 +137,30 @@ export const Project: Component<ProjectProps> = (props) => {
           </h2>
           <p class="mt-2 text-lg leading-8 text-white"></p>
         </div>
-        <ul
-          class="mx-auto mt-6 box-border columns-1 gap-[1em] space-y-4 md:columns-2 lg:columns-3"
-          role="list"
-        >
-          <ProjectCard
-            imgUrl="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fkonachan.com%2Fimage%2F50d9f5adf2822f0feca92d3af176fa85%2FKonachan.com%2520-%2520109011%2520aqua_hair%2520chibi_miku%2520transparent%2520vector%2520vocaloid.png&f=1&nofb=1&ipt=0dac1a0a5031ddd380e035987212a4d27adc566fb01dfa50cdeadf4d9066f131&ipo=images"
-            name="My Portfolio"
-            description={`My portfolio website..`}
-            svgUrl="https://svgl.app/library/expressjs_dark.svg"
-            projectUrl=""
-            icons={[
-              {
-                name: "Tailwind CSS",
-                url: "https://svgl.app/library/tailwindcss.svg",
-              },
-            ]}
-          />
-        </ul>
+        <Switch>
+          <Match when={projects.loading}>
+            <div class="mt-6 text-white">Loading projects...</div>
+          </Match>
+          <Match when={projects()}>
+            <ul
+              class="mx-auto mt-6 box-border columns-1 gap-[1em] space-y-4 md:columns-2 lg:columns-3"
+              role="list"
+            >
+              <For each={projects()}>
+                {(project) => (
+                  <ProjectCard
+                    imgUrl={project.imageUrl}
+                    name={project.name}
+                    description={project.description}
+                    svgUrl={project.svgUrl}
+                    projectUrl={project.url}
+                    icons={project.icons}
+                  />
+                )}
+              </For>
+            </ul>
+          </Match>
+        </Switch>
       </div>
     </div>
   );
