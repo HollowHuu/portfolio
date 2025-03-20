@@ -1,3 +1,5 @@
+// NOTICE - Deprecated
+
 import { Component } from "solid-js";
 
 interface GithubCardProps {
